@@ -1,0 +1,346 @@
+import { useMemo, useState, useEffect, type CSSProperties } from 'react';
+import { supabase } from '../lib/supabase';
+
+interface CartItem { id: string | number; name: string; qty: number; image: string; }
+interface ShopProps {
+  onAddToCart: (item: CartItem) => void;
+  onBuyNow: (item: CartItem) => void;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  image: string;
+  btc_price: string;
+  eth_price: string;
+  tag: string | null;
+  glow_color: string;
+}
+
+const TAG_CONFIG: Record<string, { bg: string; border: string; color: string; icon: string }> = {
+  HOT: { bg: 'rgba(231,76,60,0.12)', border: 'rgba(231,76,60,0.3)', color: '#e74c3c', icon: 'bi-fire' },
+  NEW: { bg: 'rgba(39,174,96,0.12)', border: 'rgba(39,174,96,0.3)', color: '#2ecc71', icon: 'bi-stars' },
+  PREMIUM: { bg: 'rgba(142,68,173,0.12)', border: 'rgba(142,68,173,0.3)', color: '#9b59b6', icon: 'bi-gem' },
+  POPULAR: { bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.2)', color: '#e5e7eb', icon: 'bi-heart-fill' },
+};
+
+const FILTERS = [
+  { label: 'All', icon: 'bi-grid-fill' },
+  { label: 'Popular', icon: 'bi-heart-fill' },
+  { label: 'Premium', icon: 'bi-gem' },
+  { label: 'New', icon: 'bi-stars' },
+  { label: 'Hot', icon: 'bi-fire' },
+];
+
+const DEFAULT_PRODUCTS: Product[] = [
+  {
+    id: 'p1', name: 'Netflix Premium 1 Month', image: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
+    btc_price: '0.00013', eth_price: '0.00223', tag: 'POPULAR', glow_color: 'rgba(229,9,20,0.25)', in_stock: true
+  },
+  {
+    id: 'p2', name: 'Spotify Premium 3 Months', image: 'https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg',
+    btc_price: '0.00008', eth_price: '0.00142', tag: 'HOT', glow_color: 'rgba(30,215,96,0.25)', in_stock: true
+  },
+  {
+    id: 'p3', name: 'Disney+ 1 Year', image: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg',
+    btc_price: '0.00014', eth_price: '0.00261', tag: 'PREMIUM', glow_color: 'rgba(0,114,206,0.2)', in_stock: true
+  },
+  {
+    id: 'p4', name: 'Crunchyroll Mega Fan', image: 'https://media.discordapp.net/attachments/1377724259882762432/1489124840437846167/Crunchyroll-Manga-precio-y-fecha-estreno-removebg-preview.png?ex=69cf4714&is=69cdf594&hm=b7240f9a4a135b65784187fe6a0ed539c9d1eabc4754b5031050b6cb11aa75af&=&format=webp&quality=lossless&width=519&height=390',
+    btc_price: '0.00016', eth_price: '0.00341', tag: 'NEW', glow_color: 'rgba(244,117,33,0.25)', in_stock: true
+  }
+];
+
+export default function Shop({ onAddToCart, onBuyNow }: ShopProps) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'featured' | 'name' | 'btc-low' | 'btc-high'>('featured');
+  const [currency, setCurrency] = useState<'btc' | 'eth'>('btc');
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  async function fetchProducts() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) {
+        console.error('Error fetching products:', error);
+        setProducts(DEFAULT_PRODUCTS);
+        setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
+      } else if (data && data.length > 0) {
+        setProducts(data);
+        setQuantities(Object.fromEntries(data.map(p => [p.id, 1])));
+      } else {
+        setProducts(DEFAULT_PRODUCTS);
+        setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching products:', err);
+      setProducts(DEFAULT_PRODUCTS);
+      setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const decQty = (id: string) => setQuantities(q => ({ ...q, [id]: Math.max(1, (q[id] ?? 1) - 1) }));
+  const incQty = (id: string) => setQuantities(q => ({ ...q, [id]: (q[id] ?? 1) + 1 }));
+
+  const filtered = useMemo(() => {
+    const byFilter = activeFilter === 'All'
+      ? products
+      : products.filter(p => p.tag?.toUpperCase() === activeFilter.toUpperCase());
+
+    const bySearch = search.trim().length === 0
+      ? byFilter
+      : byFilter.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
+    const sorted = [...bySearch];
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sortBy === 'btc-low') {
+      sorted.sort((a, b) => Number(a.btc_price) - Number(b.btc_price));
+    }
+    if (sortBy === 'btc-high') {
+      sorted.sort((a, b) => Number(b.btc_price) - Number(a.btc_price));
+    }
+
+    return sorted;
+  }, [activeFilter, search, sortBy, products]);
+
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  return (
+    <div className="page-enter">
+      <div style={{
+        background: 'linear-gradient(135deg, var(--nav-bg) 0%, var(--card-bg) 100%)',
+        borderBottom: '1px solid var(--border)',
+        padding: '60px 80px 40px',
+      }}>
+        <div className="section-title">
+          <i className="bi bi-shop"></i> Our Products
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <h1 className="section-heading" style={{ marginBottom: 0 }}>The Shop</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, maxWidth: 440, lineHeight: 1.7 }}>
+            <i className="bi bi-patch-check-fill" style={{ color: 'var(--accent2)', marginRight: 6 }}></i>
+            All accounts are 100% verified and include a full warranty. Secure payments accepted in BTC and ETH.
+          </p>
+        </div>
+      </div>
+
+      <div className="section" style={{ paddingTop: 48 }}>
+        {/* Filter bar */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: 16,
+          marginBottom: 24,
+          alignItems: 'center',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          }}>
+            {FILTERS.map(f => (
+              <button
+                key={f.label}
+                onClick={() => setActiveFilter(f.label)}
+                style={{
+                  padding: '8px 20px', borderRadius: 30,
+                  border: activeFilter === f.label ? '1.5px solid var(--accent2)' : '1.5px solid var(--border)',
+                  background: activeFilter === f.label ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  color: activeFilter === f.label ? 'white' : 'var(--text-muted)',
+                  fontSize: 12, fontWeight: 600, letterSpacing: '0.08em',
+                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <i className={`bi ${f.icon}`} style={{ fontSize: 13 }}></i>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 12,
+              background: 'rgba(255,255,255,0.02)',
+            }}>
+              <i className="bi bi-search" style={{ color: 'var(--text-muted)', fontSize: 12 }}></i>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search product"
+                style={{
+                  background: 'transparent', border: 'none', outline: 'none', color: 'white',
+                  fontSize: 12, width: 130,
+                }}
+              />
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as 'featured' | 'name' | 'btc-low' | 'btc-high')}
+              style={{
+                padding: '9px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)', color: 'white', fontSize: 12,
+              }}
+            >
+              <option value="featured" style={{ color: 'black' }}>Featured</option>
+              <option value="name" style={{ color: 'black' }}>Name A-Z</option>
+              <option value="btc-low" style={{ color: 'black' }}>Price: Low to High</option>
+              <option value="btc-high" style={{ color: 'black' }}>Price: High to Low</option>
+            </select>
+
+            <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 999, overflow: 'hidden' }}>
+              <button
+                onClick={() => setCurrency('btc')}
+                style={{
+                  padding: '8px 12px', border: 'none', background: currency === 'btc' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: currency === 'btc' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
+                }}
+              >
+                BTC
+              </button>
+              <button
+                onClick={() => setCurrency('eth')}
+                style={{
+                  padding: '8px 12px', border: 'none', background: currency === 'eth' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: currency === 'eth' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
+                }}
+              >
+                ETH
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setSearch('');
+                setSortBy('featured');
+                setActiveFilter('All');
+              }}
+              style={{
+                padding: '9px 12px', borderRadius: 12, border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--text-muted)', fontSize: 12,
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <div className="shop-grid">
+          {loading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="shop-card" style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                <div style={{ height: 200, background: 'rgba(255,255,255,0.05)', borderRadius: 12, marginBottom: 16 }} />
+                <div style={{ height: 20, background: 'rgba(255,255,255,0.05)', borderRadius: 4, width: '70%', marginBottom: 10 }} />
+                <div style={{ height: 16, background: 'rgba(255,255,255,0.05)', borderRadius: 4, width: '40%' }} />
+              </div>
+            ))
+          ) : filtered.map(p => {
+            const tagConf = p.tag ? TAG_CONFIG[p.tag] : null;
+            return (
+              <div className="shop-card" key={p.id}>
+                <button
+                  onClick={() => toggleFavorite(p.id)}
+                  title={favorites[p.id] ? 'Remove from favorites' : 'Add to favorites'}
+                  style={{
+                    position: 'absolute', top: 14, left: 14,
+                    width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)',
+                    background: 'rgba(0,0,0,0.4)', color: favorites[p.id] ? '#ff4d6d' : 'rgba(255,255,255,0.65)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6,
+                  }}
+                >
+                  <i className={`bi ${favorites[p.id] ? 'bi-heart-fill' : 'bi-heart'}`}></i>
+                </button>
+
+                {tagConf && (
+                  <div style={{
+                    position: 'absolute', top: 14, right: 14,
+                    padding: '4px 12px', borderRadius: 20,
+                    background: tagConf.bg, border: `1px solid ${tagConf.border}`,
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                    color: tagConf.color, display: 'flex', alignItems: 'center', gap: 5, zIndex: 5,
+                  }}>
+                    <i className={`bi ${tagConf.icon}`} style={{ fontSize: 11 }}></i>
+                    {p.tag}
+                  </div>
+                )}
+
+                <div className="shop-card-media" style={{ '--drug-glow': p.glow_color } as CSSProperties}>
+                  <img src={p.image} alt={p.name} className="shop-card-img" />
+                </div>
+                <div className="shop-card-name">{p.name}</div>
+                <div className="shop-card-price">
+                  <i className="bi bi-currency-bitcoin"></i>
+                  {currency === 'btc' ? `${p.btc_price} BTC` : `${p.eth_price} ETH`}
+                </div>
+                <div className="shop-card-stock">
+                  <i className="bi bi-circle-fill" style={{ color: p.in_stock ? 'var(--green)' : '#e74c3c' }}></i>
+                  {p.in_stock ? 'In Stock' : 'Out of Stock'}
+                </div>
+
+                <div className="shop-card-qty">
+                  <button
+                    className="qty-btn"
+                    onClick={() => decQty(p.id)}
+                    disabled={(quantities[p.id] ?? 1) <= 1 || !p.in_stock}
+                    title={(quantities[p.id] ?? 1) <= 1 ? 'Minimum quantity is 1' : 'Decrease quantity'}
+                  >
+                    <i className="bi bi-dash"></i>
+                  </button>
+                  <span className="qty-num">{quantities[p.id] ?? 1}</span>
+                  <button className="qty-btn" onClick={() => incQty(p.id)} disabled={!p.in_stock}>
+                    <i className="bi bi-plus"></i>
+                  </button>
+                </div>
+
+                <button 
+                  className="shop-card-atc" 
+                  onClick={() => onAddToCart({ id: p.id, name: p.name, qty: quantities[p.id] ?? 1, image: p.image })}
+                  disabled={!p.in_stock}
+                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed' }}
+                >
+                  <i className="bi bi-bag-plus"></i>
+                  Add to Cart
+                </button>
+                <button
+                  className="shop-card-buy"
+                  onClick={() => onBuyNow({ id: p.id, name: p.name, qty: quantities[p.id] ?? 1, image: p.image })}
+                  disabled={!p.in_stock}
+                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed' }}
+                >
+                  <i className="bi bi-lightning-charge-fill"></i>
+                  Buy Now
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+            <i className="bi bi-inbox" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}></i>
+            No products found for this filter.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

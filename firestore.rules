@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: products
+    // Fields:
+    //   - name: string (required)
+    //   - image: string (required)
+    //   - btc: string (required)
+    //   - eth: string (required)
+    //   - tag: string (optional)
+    //   - glow: string (optional)
+    //   - description: string (optional)
+    //   - subtitle: string (optional)
+    //   - stars: number (optional)
+    //   - bg: string (optional)
+    //   - accent: string (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, 'admin' or 'client')
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "js1626482@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.image is string && data.image.size() > 0 && data.image.size() < 500 &&
+             data.btc is string && data.btc.size() > 0 && data.btc.size() < 50 &&
+             data.eth is string && data.eth.size() > 0 && data.eth.size() < 50;
+    }
+
+    function isValidUser(data) {
+      return data.email is string && data.email.size() > 0 && data.email.size() < 100 &&
+             data.role in ['admin', 'client'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /products/{productId} {
+      allow read: if true; // Products are public
+      allow create, update, delete: if isAdmin() && isValidProduct(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && (request.auth.uid == userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'client' || isAdmin());
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+    }
+  }
+}

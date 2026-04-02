@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A product for sale in the shop",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the product" },
+        "image": { "type": "string", "description": "URL of the product image" },
+        "btc": { "type": "string", "description": "Price in BTC" },
+        "eth": { "type": "string", "description": "Price in ETH" },
+        "tag": { "type": "string", "description": "Optional tag (HOT, NEW, etc.)" },
+        "glow": { "type": "string", "description": "Glow color for the card" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "subtitle": { "type": "string", "description": "Hero subtitle" },
+        "stars": { "type": "number", "description": "Rating out of 5" },
+        "bg": { "type": "string", "description": "Background class for hero" },
+        "accent": { "type": "string", "description": "Accent color" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "image", "btc", "eth"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and role",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "User email" },
+        "role": { "type": "string", "enum": ["admin", "client"], "description": "User role" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    }
+  }
+}
