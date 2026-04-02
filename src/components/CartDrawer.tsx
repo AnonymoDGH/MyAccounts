@@ -32,12 +32,19 @@ export default function CartDrawer({ open, onClose, items, onRemove, onCheckout 
 
       const totalUsd = (total * 15.99).toFixed(2);
 
+      // Extraer datos de Discord si el usuario inició sesión con Discord
+      const discordIdentity = user.identities?.find(i => i.provider === 'discord');
+      const discordId = discordIdentity?.identity_data?.provider_id || discordIdentity?.identity_data?.sub || discordIdentity?.id || null;
+      const discordName = user.user_metadata?.custom_claims?.global_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Cliente';
+
       // 1. Insert order into database
       const { data: order, error: insertError } = await supabase
         .from('orders')
         .insert([{
           user_id: user.id,
           user_email: user.email,
+          discord_id: discordId,
+          discord_name: discordName,
           items: items,
           total_usd: totalUsd,
           status: 'pending'
