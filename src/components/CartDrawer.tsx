@@ -30,35 +30,56 @@ export default function CartDrawer({ open, onClose, items, onRemove, onCheckout 
         return;
       }
 
-      // Calculate a mock total USD for demonstration (you can replace this with real logic)
       const totalUsd = (total * 15.99).toFixed(2);
 
-      // Call the Discord Bot API
-      // Note: In production, this should point to where your bot is hosted (e.g., https://your-bot-domain.com/api/checkout)
-      const response = await fetch('http://localhost:3001/api/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          userEmail: user.email,
+      // 1. Insert order into database
+      const { data: order, error: insertError } = await supabase
+        .from('orders')
+        .insert([{
+          user_id: user.id,
+          user_email: user.email,
           items: items,
-          totalUsd: totalUsd
-        }),
-      });
+          total_usd: totalUsd,
+          status: 'pending'
+        }])
+        .select()
+        .single();
 
-      const data = await response.json();
-
-      if (data.success) {
-        setTicketUrl(data.ticketUrl);
-      } else {
-        setError(data.error || 'Failed to create ticket');
+      if (insertError || !order) {
+        console.error('Insert Error:', insertError);
+        setError('Failed to create order in database.');
+        setIsCheckingOut(false);
+        return;
       }
+
+      // 2. Subscribe to the order to wait for the bot to update it
+      const channel = supabase
+        .channel(`order-${order.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` },
+          (payload) => {
+            if (payload.new.discord_channel_id) {
+              setTicketUrl(`https://discord.com/channels/1458518569061974100/${payload.new.discord_channel_id}`);
+              setIsCheckingOut(false);
+              supabase.removeChannel(channel); // Unsubscribe once we have the link
+            }
+          }
+        )
+        .subscribe();
+
+      // Optional: Timeout if the bot is offline
+      setTimeout(() => {
+        if (isCheckingOut) {
+          setIsCheckingOut(false);
+          setError('The bot is taking too long to respond. Please check your Discord server manually.');
+          supabase.removeChannel(channel);
+        }
+      }, 15000);
+
     } catch (err) {
       console.error(err);
       setError('Could not connect to the checkout server.');
-    } finally {
       setIsCheckingOut(false);
     }
   };

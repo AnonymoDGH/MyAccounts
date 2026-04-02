@@ -10,20 +10,13 @@ const {
   ChannelType, 
   PermissionsBitField 
 } = require('discord.js');
-const express = require('express');
-const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 // Configuración de Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL, 
-  process.env.SUPABASE_SERVICE_KEY // Usamos la Service Key para tener permisos de escritura en la DB desde el bot
+  process.env.SUPABASE_SERVICE_KEY // Usamos la Service Key para tener permisos de escritura y saltar RLS
 );
-
-// Configuración de Express (API para recibir peticiones de la web)
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 // Configuración del Bot de Discord
 const client = new Client({
@@ -39,24 +32,34 @@ const CATEGORY_ID = '1489151772311289918';
 
 client.on('ready', () => {
   console.log(`🤖 Bot conectado exitosamente como ${client.user.tag}`);
+
+  // Suscribirse a nuevos pedidos en la base de datos usando Supabase Realtime
+  supabase
+    .channel('custom-insert-channel')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'orders' },
+      async (payload) => {
+        console.log('🔔 Nuevo pedido detectado en la DB:', payload.new.id);
+        await handleNewOrder(payload.new);
+      }
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('📡 Escuchando nuevos pedidos en tiempo real...');
+      }
+    });
 });
 
-// Endpoint que la página web llamará cuando el usuario le dé a "Secure Checkout"
-app.post('/api/checkout', async (req, res) => {
+async function handleNewOrder(order) {
   try {
-    const { userId, userEmail, items, totalUsd } = req.body;
-
-    if (!userId || !items || items.length === 0) {
-      return res.status(400).json({ error: 'Faltan datos en la petición' });
-    }
-
     const guild = client.guilds.cache.get(GUILD_ID);
     if (!guild) {
-      return res.status(500).json({ error: 'No se encontró el servidor de Discord' });
+      return console.error('❌ No se encontró el servidor de Discord');
     }
 
-    // 1. Crear el canal (Ticket) en la categoría especificada
-    const channelName = `ticket-${userEmail ? userEmail.split('@')[0] : userId.substring(0, 6)}`;
+    // 1. Crear el canal (Ticket)
+    const channelName = `ticket-${order.user_email ? order.user_email.split('@')[0] : order.user_id.substring(0, 6)}`;
     const channel = await guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
@@ -66,92 +69,79 @@ app.post('/api/checkout', async (req, res) => {
           id: guild.id,
           deny: [PermissionsBitField.Flags.ViewChannel], // Oculto para todos por defecto
         },
-        // Aquí podrías añadir permisos para que los administradores vean el canal
       ],
     });
 
-    // 2. Crear el Embed con los detalles del pedido
-    const itemsList = items.map(item => `• **${item.qty}x** ${item.name}`).join('\n');
+    // 2. Crear el Embed con los detalles
+    const itemsList = order.items.map(item => `• **${item.qty}x** ${item.name}`).join('\n');
     
     const embed = new EmbedBuilder()
       .setTitle('🛒 Nuevo Pedido Creado')
-      .setDescription(`Un usuario ha iniciado un proceso de compra.\n\n**👤 Usuario:** ${userEmail || userId}\n**💰 Total a pagar:** $${totalUsd} USD\n\n**📦 Productos:**\n${itemsList}`)
+      .setDescription(`Un usuario ha iniciado un proceso de compra.\n\n**👤 Usuario:** ${order.user_email || order.user_id}\n**💰 Total a pagar:** $${order.total_usd} USD\n\n**📦 Productos:**\n${itemsList}`)
       .setColor('#2ecc71')
-      .setFooter({ text: `Order ID: ${userId.substring(0, 8)}` })
+      .setFooter({ text: `Order ID: ${order.id}` })
       .setTimestamp();
 
     // 3. Crear los botones
     const confirmBtn = new ButtonBuilder()
-      .setCustomId(`confirm_${userId}`)
+      .setCustomId(`confirm_${order.id}`)
       .setLabel('Finalizar y Registrar Pago')
       .setStyle(ButtonStyle.Success)
       .setEmoji('✅');
 
     const cancelBtn = new ButtonBuilder()
-      .setCustomId(`cancel_${userId}`)
+      .setCustomId(`cancel_${order.id}`)
       .setLabel('Cancelar Petición')
       .setStyle(ButtonStyle.Danger)
       .setEmoji('✖️');
 
     const row = new ActionRowBuilder().addComponents(confirmBtn, cancelBtn);
 
-    // 4. Enviar el mensaje al nuevo canal
+    // 4. Enviar el mensaje al canal
     await channel.send({ embeds: [embed], components: [row] });
 
-    // 5. Registrar el pedido en la base de datos como "pendiente"
+    // 5. Actualizar la base de datos con el ID del canal para que la web lo sepa
     const { error } = await supabase
       .from('orders')
-      .insert([
-        { 
-          user_id: userId, 
-          items: items, 
-          total_usd: totalUsd, 
-          status: 'pending',
-          discord_channel_id: channel.id 
-        }
-      ]);
+      .update({ discord_channel_id: channel.id })
+      .eq('id', order.id);
 
     if (error) {
-      console.error('Error guardando en Supabase:', error);
+      console.error('❌ Error actualizando el canal en Supabase:', error);
+    } else {
+      console.log(`✅ Ticket creado exitosamente para la orden ${order.id}`);
     }
 
-    // 6. Devolver la URL del canal a la página web
-    const channelUrl = `https://discord.com/channels/${GUILD_ID}/${channel.id}`;
-    res.json({ success: true, ticketUrl: channelUrl });
-
   } catch (error) {
-    console.error('Error en el checkout:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('❌ Error procesando la orden:', error);
   }
-});
+}
 
 // Manejar los clics en los botones del Embed
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
-  const [action, userId] = interaction.customId.split('_');
+  const [action, orderId] = interaction.customId.split('_');
 
   if (action === 'confirm') {
-    // Actualizar el estado en la base de datos a "pagado"
     await supabase
       .from('orders')
       .update({ status: 'paid' })
-      .eq('discord_channel_id', interaction.channelId);
+      .eq('id', orderId);
 
     const embed = new EmbedBuilder()
       .setTitle('✅ Pago Confirmado')
       .setDescription('El pago ha sido registrado en la base de datos. Por favor, procede a entregar las cuentas al cliente.')
       .setColor('#3498db');
 
-    await interaction.update({ components: [] }); // Quitar los botones para que no se puedan volver a pulsar
+    await interaction.update({ components: [] });
     await interaction.followUp({ embeds: [embed] });
   } 
   else if (action === 'cancel') {
-    // Actualizar el estado en la base de datos a "cancelado"
     await supabase
       .from('orders')
       .update({ status: 'cancelled' })
-      .eq('discord_channel_id', interaction.channelId);
+      .eq('id', orderId);
 
     const embed = new EmbedBuilder()
       .setTitle('❌ Pedido Cancelado')
@@ -161,17 +151,10 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.update({ components: [] });
     await interaction.followUp({ embeds: [embed] });
     
-    // Opcional: Borrar el canal después de 10 segundos
     setTimeout(() => {
       interaction.channel.delete().catch(console.error);
     }, 10000);
   }
-});
-
-// Iniciar el servidor Express
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🌐 API del Bot escuchando en el puerto ${PORT}`);
 });
 
 // Iniciar sesión en Discord
