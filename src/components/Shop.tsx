@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 
 interface CartItem { id: string | number; name: string; qty: number; image: string; }
 interface ShopProps {
+  cart: CartItem[];
+  onUpdateCartQty: (item: CartItem) => void;
   onAddToCart: (item: CartItem) => void;
   onBuyNow: (item: CartItem) => void;
 }
@@ -15,6 +17,7 @@ interface Product {
   eth_price: string;
   tag: string | null;
   glow_color: string;
+  in_stock?: boolean;
 }
 
 const TAG_CONFIG: Record<string, { bg: string; border: string; color: string; icon: string }> = {
@@ -51,9 +54,8 @@ const DEFAULT_PRODUCTS: Product[] = [
   }
 ];
 
-export default function Shop({ onAddToCart, onBuyNow }: ShopProps) {
+export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: ShopProps) {
   const [products, setProducts] = useState<Product[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'name' | 'btc-low' | 'btc-high'>('featured');
@@ -72,25 +74,34 @@ export default function Shop({ onAddToCart, onBuyNow }: ShopProps) {
       if (error) {
         console.error('Error fetching products:', error);
         setProducts(DEFAULT_PRODUCTS);
-        setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
       } else if (data && data.length > 0) {
         setProducts(data);
-        setQuantities(Object.fromEntries(data.map(p => [p.id, 1])));
       } else {
         setProducts(DEFAULT_PRODUCTS);
-        setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
       }
     } catch (err) {
       console.error('Unexpected error fetching products:', err);
       setProducts(DEFAULT_PRODUCTS);
-      setQuantities(Object.fromEntries(DEFAULT_PRODUCTS.map(p => [p.id, 1])));
     } finally {
       setLoading(false);
     }
   }
 
-  const decQty = (id: string) => setQuantities(q => ({ ...q, [id]: Math.max(1, (q[id] ?? 1) - 1) }));
-  const incQty = (id: string) => setQuantities(q => ({ ...q, [id]: (q[id] ?? 1) + 1 }));
+  const getCartQty = (id: string) => {
+    return cart.find(item => item.id === id)?.qty || 0;
+  };
+
+  const decQty = (p: Product) => {
+    const currentQty = getCartQty(p.id);
+    if (currentQty > 0) {
+      onUpdateCartQty({ id: p.id, name: p.name, qty: currentQty - 1, image: p.image });
+    }
+  };
+
+  const incQty = (p: Product) => {
+    const currentQty = getCartQty(p.id);
+    onUpdateCartQty({ id: p.id, name: p.name, qty: currentQty + 1, image: p.image });
+  };
 
   const filtered = useMemo(() => {
     const byFilter = activeFilter === 'All'
@@ -299,32 +310,25 @@ export default function Shop({ onAddToCart, onBuyNow }: ShopProps) {
                 <div className="shop-card-qty">
                   <button
                     className="qty-btn"
-                    onClick={() => decQty(p.id)}
-                    disabled={(quantities[p.id] ?? 1) <= 1 || !p.in_stock}
-                    title={(quantities[p.id] ?? 1) <= 1 ? 'Minimum quantity is 1' : 'Decrease quantity'}
+                    onClick={() => decQty(p)}
+                    disabled={getCartQty(p.id) <= 0 || !p.in_stock}
                   >
                     <i className="bi bi-dash"></i>
                   </button>
-                  <span className="qty-num">{quantities[p.id] ?? 1}</span>
-                  <button className="qty-btn" onClick={() => incQty(p.id)} disabled={!p.in_stock}>
+                  <span className="qty-num">{getCartQty(p.id)}</span>
+                  <button className="qty-btn" onClick={() => incQty(p)} disabled={!p.in_stock}>
                     <i className="bi bi-plus"></i>
                   </button>
                 </div>
 
-                <button 
-                  className="shop-card-atc" 
-                  onClick={() => onAddToCart({ id: p.id, name: p.name, qty: quantities[p.id] ?? 1, image: p.image })}
-                  disabled={!p.in_stock}
-                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed' }}
-                >
-                  <i className="bi bi-bag-plus"></i>
-                  Add to Cart
-                </button>
                 <button
                   className="shop-card-buy"
-                  onClick={() => onBuyNow({ id: p.id, name: p.name, qty: quantities[p.id] ?? 1, image: p.image })}
+                  onClick={() => {
+                    const currentQty = getCartQty(p.id);
+                    onBuyNow({ id: p.id, name: p.name, qty: currentQty === 0 ? 1 : currentQty, image: p.image });
+                  }}
                   disabled={!p.in_stock}
-                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed' }}
+                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed', gridColumn: 'span 2' }}
                 >
                   <i className="bi bi-lightning-charge-fill"></i>
                   Buy Now

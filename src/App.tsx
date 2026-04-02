@@ -135,6 +135,20 @@ export default function App() {
     setCartOpen(true);
   };
 
+  const handleUpdateCartQty = (item: CartItem) => {
+    if (item.qty <= 0) {
+      setCart(prev => prev.filter(i => i.id !== item.id));
+    } else {
+      setCart(prev => {
+        const existing = prev.find(i => i.id === item.id);
+        if (existing) {
+          return prev.map(i => i.id === item.id ? { ...i, qty: item.qty } : i);
+        }
+        return [...prev, item];
+      });
+    }
+  };
+
   const handleBuyNow = (item: CartItem) => {
     handleAddToCart(item);
   };
@@ -143,10 +157,11 @@ export default function App() {
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, qty: item.qty } : i);
+        return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i);
       }
-      return [...prev, item];
+      return [...prev, { ...item, qty: 1 }];
     });
+    setCartOpen(true);
     navigateTo('shop');
   };
 
@@ -345,8 +360,8 @@ export default function App() {
           </>
         )}
 
-        {page === 'shop' && <Shop onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
-        {page === 'economy' && <Economy onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
+        {page === 'shop' && <Shop cart={cart} onUpdateCartQty={handleUpdateCartQty} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
+        {page === 'economy' && <Economy cart={cart} onUpdateCartQty={handleUpdateCartQty} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
         {page === 'faq' && <FAQ />}
         {page === 'safety' && <Safety />}
         {page === 'contact' && <Contact />}

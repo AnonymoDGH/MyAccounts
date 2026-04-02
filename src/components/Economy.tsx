@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 
 interface CartItem { id: string | number; name: string; qty: number; image: string; }
 interface Props {
+  cart: CartItem[];
+  onUpdateCartQty: (item: CartItem) => void;
   onAddToCart: (item: CartItem) => void;
   onBuyNow: (item: CartItem) => void;
 }
@@ -40,14 +42,13 @@ const DEFAULT_BUNDLES: Bundle[] = [
   },
 ];
 
-export default function Economy({ onAddToCart, onBuyNow }: Props) {
+export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: Props) {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'deal' | 'btc-low' | 'btc-high'>('deal');
   const [discountFilter, setDiscountFilter] = useState<'all' | '15' | '20'>('all');
   const [currency, setCurrency] = useState<'btc' | 'eth'>('btc');
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchBundles() {
@@ -72,11 +73,21 @@ export default function Economy({ onAddToCart, onBuyNow }: Props) {
     fetchBundles();
   }, []);
 
-  useEffect(() => {
-    if (bundles.length > 0) {
-      setQuantities(Object.fromEntries(bundles.map(b => [b.id, 1])));
+  const getCartQty = (id: string) => {
+    return cart.find(item => item.id === id)?.qty || 0;
+  };
+
+  const decreaseQty = (b: Bundle) => {
+    const currentQty = getCartQty(b.id);
+    if (currentQty > 0) {
+      onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty - 1, image: b.image });
     }
-  }, [bundles]);
+  };
+
+  const increaseQty = (b: Bundle) => {
+    const currentQty = getCartQty(b.id);
+    onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty + 1, image: b.image });
+  };
 
   const filteredBundles = useMemo(() => {
     const bySearch = search.trim().length === 0
@@ -99,14 +110,6 @@ export default function Economy({ onAddToCart, onBuyNow }: Props) {
     }
     return sorted;
   }, [bundles, discountFilter, search, sortBy]);
-
-  const increaseQty = (id: string) => {
-    setQuantities(prev => ({ ...prev, [id]: (prev[id] || 1) + 1 }));
-  };
-
-  const decreaseQty = (id: string) => {
-    setQuantities(prev => ({ ...prev, [id]: Math.max(1, (prev[id] || 1) - 1) }));
-  };
 
   return (
     <div className="page-enter">
@@ -237,22 +240,25 @@ export default function Economy({ onAddToCart, onBuyNow }: Props) {
               <div className="shop-card-qty">
                 <button
                   className="qty-btn"
-                  onClick={() => decreaseQty(b.id)}
-                  disabled={quantities[b.id] <= 1}
+                  onClick={() => decreaseQty(b)}
+                  disabled={getCartQty(b.id) <= 0}
                 >
                   <i className="bi bi-dash"></i>
                 </button>
-                <span className="qty-num">{quantities[b.id]}</span>
-                <button className="qty-btn" onClick={() => increaseQty(b.id)}>
+                <span className="qty-num">{getCartQty(b.id)}</span>
+                <button className="qty-btn" onClick={() => increaseQty(b)}>
                   <i className="bi bi-plus"></i>
                 </button>
               </div>
 
-              <button className="shop-card-atc" onClick={() => onAddToCart({ id: b.id, name: b.name, qty: quantities[b.id], image: b.image })}>
-                <i className="bi bi-bag-plus"></i>
-                Add to Cart
-              </button>
-              <button className="shop-card-buy" onClick={() => onBuyNow({ id: b.id, name: b.name, qty: quantities[b.id], image: b.image })}>
+              <button
+                className="shop-card-buy"
+                onClick={() => {
+                  const currentQty = getCartQty(b.id);
+                  onBuyNow({ id: b.id, name: b.name, qty: currentQty === 0 ? 1 : currentQty, image: b.image });
+                }}
+                style={{ gridColumn: 'span 2' }}
+              >
                 <i className="bi bi-lightning-charge-fill"></i>
                 Buy Now
               </button>
