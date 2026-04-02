@@ -21,6 +21,7 @@ export default function LoginModal({ open, onClose }: LoginModalProps) {
       provider: 'discord',
       options: {
         redirectTo: window.location.origin,
+        scopes: 'identify email guilds.join',
       },
     });
     if (error) setError(error.message);
