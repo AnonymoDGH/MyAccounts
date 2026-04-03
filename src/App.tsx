@@ -13,7 +13,7 @@ import LoginModal from './components/LoginModal';
 import Economy from './components/Economy';
 import Admin from './components/Admin';
 
-interface CartItem { id: string | number; name: string; qty: number; image: string; }
+interface CartItem { id: string | number; name: string; qty: number; image: string; price: number; }
 
 type Page = 'home' | 'shop' | 'economy' | 'safety' | 'faq' | 'contact' | 'admin';
 
@@ -43,19 +43,19 @@ const LOGO_URL = 'https://raw.githubusercontent.com/skelettn/MyDrugs2.0/main/ass
 const DEFAULT_PRODUCTS = [
   {
     id: 'p1', name: 'Netflix Premium 1 Month', image: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
-    btc_price: '0.00013', eth_price: '0.00223', tag: 'POPULAR', glow_color: 'rgba(229,9,20,0.25)', in_stock: true
+    usd_price: '1.00', eur_price: '0.92', tag: 'POPULAR', glow_color: 'rgba(229,9,20,0.25)', in_stock: true
   },
   {
     id: 'p2', name: 'Spotify Premium 3 Months', image: 'https://upload.wikimedia.org/wikipedia/commons/2/26/Spotify_logo_with_text.svg',
-    btc_price: '0.00008', eth_price: '0.00142', tag: 'HOT', glow_color: 'rgba(30,215,96,0.25)', in_stock: true
+    usd_price: '1.50', eur_price: '1.40', tag: 'HOT', glow_color: 'rgba(30,215,96,0.25)', in_stock: true
   },
   {
     id: 'p3', name: 'Disney+ 1 Year', image: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg',
-    btc_price: '0.00014', eth_price: '0.00261', tag: 'PREMIUM', glow_color: 'rgba(0,114,206,0.2)', in_stock: true
+    usd_price: '0.60', eur_price: '0.55', tag: 'PREMIUM', glow_color: 'rgba(0,114,206,0.2)', in_stock: true
   },
   {
     id: 'p4', name: 'Crunchyroll Mega Fan', image: 'https://media.discordapp.net/attachments/1377724259882762432/1489124840437846167/Crunchyroll-Manga-precio-y-fecha-estreno-removebg-preview.png?ex=69cf4714&is=69cdf594&hm=b7240f9a4a135b65784187fe6a0ed539c9d1eabc4754b5031050b6cb11aa75af&=&format=webp&quality=lossless&width=519&height=390',
-    btc_price: '0.00016', eth_price: '0.00341', tag: 'NEW', glow_color: 'rgba(244,117,33,0.25)', in_stock: true
+    usd_price: '0.30', eur_price: '0.28', tag: 'NEW', glow_color: 'rgba(244,117,33,0.25)', in_stock: true
   }
 ];
 
@@ -272,8 +272,8 @@ export default function App() {
                       <img src={p.image} alt={p.name} className="shop-card-img" />
                       <div className="shop-card-name">{p.name}</div>
                       <div className="shop-card-price">
-                        <i className="bi bi-currency-bitcoin"></i>
-                        {p.btc_price} BTC / {p.eth_price} ETH
+                        <i className="bi bi-currency-dollar"></i>
+                        {p.usd_price} USD / {p.eur_price} EUR
                       </div>
                       <div className="shop-card-stock" style={{ marginBottom: 20 }}>
                         <i className="bi bi-circle-fill" style={{ color: p.in_stock ? 'var(--green)' : '#e74c3c' }}></i>
@@ -281,7 +281,7 @@ export default function App() {
                       </div>
                       <button
                         className="shop-card-atc"
-                        onClick={() => handleAddToCart({ id: p.id, name: p.name, qty: 1, image: p.image })}
+                        onClick={() => handleAddToCart({ id: p.id, name: p.name, qty: 1, image: p.image, price: Number(p.usd_price) })}
                         disabled={!p.in_stock}
                         style={{ opacity: p.in_stock ? 1 : 0.5 }}
                       >

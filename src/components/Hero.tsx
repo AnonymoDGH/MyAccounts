@@ -17,8 +17,8 @@ interface Slide {
   subtitle: string;
   desc: string;
   image: string;
-  btc_price: string;
-  eth_price: string;
+  usd_price: string;
+  eur_price: string;
   stars: number;
   bg: string;
   glow_color: string;
@@ -29,25 +29,25 @@ const DEFAULT_SLIDES: Slide[] = [
   {
     id: '1', name: 'NETFLIX PREMIUM', subtitle: 'WATCH ANYWHERE. CANCEL ANYTIME.',
     desc: 'Get access to Netflix Premium with 4K Ultra HD and HDR. Stream on 4 devices at once. Reliable and stable accounts.',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg', btc_price: '0.00013', eth_price: '0.00223', stars: 5,
+    image: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg', usd_price: '1.00', eur_price: '0.92', stars: 5,
     bg: 'slide-red', glow_color: 'rgba(229,9,20,0.25)', accent: '#e50914',
   },
   {
     id: '2', name: 'DISNEY+ ANNUAL', subtitle: 'THE BEST STORIES IN ONE PLACE',
     desc: 'Enjoy Disney, Pixar, Marvel, Star Wars, and National Geographic. Ad-free experience with unlimited downloads.',
-    image: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg', btc_price: '0.00014', eth_price: '0.00261', stars: 5,
+    image: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg', usd_price: '0.60', eur_price: '0.55', stars: 5,
     bg: 'slide-blue', glow_color: 'rgba(0,114,206,0.2)', accent: '#0072ce',
   },
   {
     id: '3', name: 'CRUNCHYROLL MEGA', subtitle: 'THE WORLD\'S LARGEST ANIME LIBRARY',
     desc: 'Stream new episodes shortly after they air in Japan. Offline viewing and access to the entire manga library.',
-    image: 'https://media.discordapp.net/attachments/1377724259882762432/1489124840437846167/Crunchyroll-Manga-precio-y-fecha-estreno-removebg-preview.png?ex=69cf4714&is=69cdf594&hm=b7240f9a4a135b65784187fe6a0ed539c9d1eabc4754b5031050b6cb11aa75af&=&format=webp&quality=lossless&width=519&height=390', btc_price: '0.00016', eth_price: '0.00341', stars: 5,
+    image: 'https://media.discordapp.net/attachments/1377724259882762432/1489124840437846167/Crunchyroll-Manga-precio-y-fecha-estreno-removebg-preview.png?ex=69cf4714&is=69cdf594&hm=b7240f9a4a135b65784187fe6a0ed539c9d1eabc4754b5031050b6cb11aa75af&=&format=webp&quality=lossless&width=519&height=390', usd_price: '0.30', eur_price: '0.28', stars: 5,
     bg: 'slide-orange', glow_color: 'rgba(244,117,33,0.25)', accent: '#f47521',
   },
   {
     id: '4', name: 'DISCORD NITRO', subtitle: 'UNLEASH THE BEST OF DISCORD',
     desc: 'Get custom emojis, larger file uploads, HD video streaming, and 2 Server Boosts. Enhance your Discord experience.',
-    image: 'https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/688bbfec88fb6c55f8e87c0f_imgonline-com-ua-Resize-JSJAo2mDwZhTEs.webp', btc_price: '0.00012', eth_price: '0.00181', stars: 5,
+    image: 'https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/688bbfec88fb6c55f8e87c0f_imgonline-com-ua-Resize-JSJAo2mDwZhTEs.webp', usd_price: '2.90', eur_price: '2.65', stars: 5,
     bg: 'slide-purple', glow_color: 'rgba(88,101,242,0.25)', accent: '#5865f2',
   },
 ];
@@ -93,8 +93,8 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
           subtitle: p.subtitle || 'PREMIUM DIGITAL ACCOUNT',
           desc: p.description || 'Premium quality digital account with instant delivery and full warranty.',
           image: p.image,
-          btc_price: p.btc_price,
-          eth_price: p.eth_price,
+          usd_price: p.usd_price,
+          eur_price: p.eur_price,
           stars: 5,
           bg: p.bg || (p.name.toLowerCase().includes('netflix') ? 'slide-red' : 
                       p.name.toLowerCase().includes('disney') ? 'slide-blue' : 
@@ -213,8 +213,8 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
 
         <div className="hero-copy hero-copy-right">
           <p className="hero-price" key={`price-${animKey}`} style={{ animation: 'fadeSlideUp 0.5s ease 0.2s both' }}>
-            <i className="bi bi-currency-bitcoin"></i>
-            <span>{slide.btc_price} BTC</span> / <span>{slide.eth_price} ETH</span>
+            <i className="bi bi-currency-dollar"></i>
+            <span>{slide.usd_price} USD</span> / <span>{slide.eur_price} EUR</span>
           </p>
 
           <p className="hero-desc" key={`desc-${animKey}`} style={{ animation: 'fadeSlideUp 0.5s ease 0.3s both' }}>
@@ -224,14 +224,14 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
           <div className="hero-actions" key={`btns-${animKey}`}>
             <button
               className="hero-add-btn"
-              onClick={() => onAddToCart({ id: slide.id, name: slide.name, qty: 1, image: slide.image })}
+              onClick={() => onAddToCart({ id: slide.id, name: slide.name, qty: 1, image: slide.image, price: Number(slide.usd_price) })}
               title="Add to cart"
             >
               <i className="bi bi-plus-lg"></i>
             </button>
             <button
               className="hero-buy-btn"
-              onClick={() => onBuyNow({ id: slide.id, name: slide.name, qty: 1, image: slide.image })}
+              onClick={() => onBuyNow({ id: slide.id, name: slide.name, qty: 1, image: slide.image, price: Number(slide.usd_price) })}
             >
               <i className="bi bi-bag-plus-fill"></i>
               Buy Now

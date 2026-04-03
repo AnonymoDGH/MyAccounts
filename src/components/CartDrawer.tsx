@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-interface CartItem { id: string | number; name: string; qty: number; image: string; }
+interface CartItem { id: string | number; name: string; qty: number; image: string; price: number; }
 
 interface CartDrawerProps {
   open: boolean;
@@ -16,7 +16,8 @@ export default function CartDrawer({ open, onClose, items, onRemove, onCheckout 
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const total = items.reduce((s, i) => s + i.qty, 0);
+  const totalQty = items.reduce((s, i) => s + i.qty, 0);
+  const totalUsd = items.reduce((s, i) => s + (i.price * i.qty), 0).toFixed(2);
 
   const handleSecureCheckout = async () => {
     setIsCheckingOut(true);
@@ -29,8 +30,6 @@ export default function CartDrawer({ open, onClose, items, onRemove, onCheckout 
         setIsCheckingOut(false);
         return;
       }
-
-      const totalUsd = (total * 15.99).toFixed(2);
 
       // Extraer datos de Discord si el usuario inició sesión con Discord
       const discordIdentity = user.identities?.find(i => i.provider === 'discord');
@@ -98,7 +97,7 @@ export default function CartDrawer({ open, onClose, items, onRemove, onCheckout 
         <div className="cart-drawer-header">
           <span className="cart-drawer-title">
             <i className="bi bi-bag-fill"></i>
-            Cart ({total})
+            Cart ({totalQty})
           </span>
           <button className="cart-close-btn" onClick={onClose}>
             <i className="bi bi-x-lg"></i>

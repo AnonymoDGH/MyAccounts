@@ -14,8 +14,8 @@ interface Bundle {
   name: string;
   image: string;
   description: string;
-  btc: string;
-  eth: string;
+  usd: string;
+  eur: string;
   savings: number;
 }
 
@@ -23,22 +23,22 @@ const DEFAULT_BUNDLES: Bundle[] = [
   {
     id: '101', name: 'STREAMING STARTER', image: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
     description: 'Get the best of both worlds. Includes Netflix Premium + Disney+ Annual access.',
-    btc: '0.00023', eth: '0.00412', savings: 15,
+    usd: '1.40', eur: '1.30', savings: 15,
   },
   {
     id: '102', name: 'ANIME & CHAT', image: 'https://media.discordapp.net/attachments/1377724259882762432/1489124840437846167/Crunchyroll-Manga-precio-y-fecha-estreno-removebg-preview.png?ex=69cf4714&is=69cdf594&hm=b7240f9a4a135b65784187fe6a0ed539c9d1eabc4754b5031050b6cb11aa75af&=&format=webp&quality=lossless&width=519&height=390',
     description: 'The ultimate combo for fans. Includes Crunchyroll Mega + Discord Nitro Monthly.',
-    btc: '0.00022', eth: '0.00395', savings: 20,
+    usd: '3.00', eur: '2.80', savings: 20,
   },
   {
     id: '103', name: 'ULTIMATE FAMILY', image: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg',
     description: 'Everything your family needs. Netflix Premium + Disney+ + Crunchyroll Mega.',
-    btc: '0.00032', eth: '0.00581', savings: 25,
+    usd: '1.70', eur: '1.55', savings: 25,
   },
   {
     id: '104', name: 'DISCORD BULK', image: 'https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/688bbfec88fb6c55f8e87c0f_imgonline-com-ua-Resize-JSJAo2mDwZhTEs.webp',
     description: "Buy 5 Discord Nitro Monthly codes at once and save big. Perfect for gifting.",
-    btc: '0.00042', eth: '0.00752', savings: 30,
+    usd: '12.00', eur: '11.00', savings: 30,
   },
 ];
 
@@ -46,9 +46,9 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<'deal' | 'btc-low' | 'btc-high'>('deal');
+  const [sortBy, setSortBy] = useState<'deal' | 'price-low' | 'price-high'>('deal');
   const [discountFilter, setDiscountFilter] = useState<'all' | '15' | '20'>('all');
-  const [currency, setCurrency] = useState<'btc' | 'eth'>('btc');
+  const [currency, setCurrency] = useState<'usd' | 'eur'>('usd');
 
   useEffect(() => {
     async function fetchBundles() {
@@ -80,13 +80,13 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
   const decreaseQty = (b: Bundle) => {
     const currentQty = getCartQty(b.id);
     if (currentQty > 0) {
-      onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty - 1, image: b.image });
+      onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty - 1, image: b.image, price: Number(b.usd) });
     }
   };
 
   const increaseQty = (b: Bundle) => {
     const currentQty = getCartQty(b.id);
-    onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty + 1, image: b.image });
+    onUpdateCartQty({ id: b.id, name: b.name, qty: currentQty + 1, image: b.image, price: Number(b.usd) });
   };
 
   const filteredBundles = useMemo(() => {
@@ -99,11 +99,11 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
       : bySearch.filter(bundle => bundle.savings >= Number(discountFilter));
 
     const sorted = [...byDiscount];
-    if (sortBy === 'btc-low') {
-      sorted.sort((a, b) => Number(a.btc) - Number(b.btc));
+    if (sortBy === 'price-low') {
+      sorted.sort((a, b) => Number(a.usd) - Number(b.usd));
     }
-    if (sortBy === 'btc-high') {
-      sorted.sort((a, b) => Number(b.btc) - Number(a.btc));
+    if (sortBy === 'price-high') {
+      sorted.sort((a, b) => Number(b.usd) - Number(a.usd));
     }
     if (sortBy === 'deal') {
       sorted.sort((a, b) => b.savings - a.savings);
@@ -157,15 +157,15 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
             </div>
             <select
               value={sortBy}
-              onChange={e => setSortBy(e.target.value as 'deal' | 'btc-low' | 'btc-high')}
+              onChange={e => setSortBy(e.target.value as 'deal' | 'price-low' | 'price-high')}
               style={{
                 padding: '9px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.02)',
                 border: '1px solid var(--border)', color: 'white', fontSize: 12,
               }}
             >
               <option value="deal" style={{ color: 'black' }}>Best Deal</option>
-              <option value="btc-low" style={{ color: 'black' }}>Price: Low to High</option>
-              <option value="btc-high" style={{ color: 'black' }}>Price: High to Low</option>
+              <option value="price-low" style={{ color: 'black' }}>Price: Low to High</option>
+              <option value="price-high" style={{ color: 'black' }}>Price: High to Low</option>
             </select>
             <select
               value={discountFilter}
@@ -183,22 +183,22 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
 
           <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 999, overflow: 'hidden' }}>
             <button
-              onClick={() => setCurrency('btc')}
+              onClick={() => setCurrency('usd')}
               style={{
-                padding: '8px 12px', border: 'none', background: currency === 'btc' ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: currency === 'btc' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
+                padding: '8px 12px', border: 'none', background: currency === 'usd' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: currency === 'usd' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
               }}
             >
-              BTC
+              USD
             </button>
             <button
-              onClick={() => setCurrency('eth')}
+              onClick={() => setCurrency('eur')}
               style={{
-                padding: '8px 12px', border: 'none', background: currency === 'eth' ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: currency === 'eth' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
+                padding: '8px 12px', border: 'none', background: currency === 'eur' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: currency === 'eur' ? 'white' : 'var(--text-muted)', fontSize: 11, fontWeight: 700,
               }}
             >
-              ETH
+              EUR
             </button>
           </div>
         </div>
@@ -228,8 +228,8 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
               <img src={b.image} alt={b.name} className="shop-card-img" />
               <div className="shop-card-name">{b.name}</div>
               <div className="shop-card-price">
-                <i className="bi bi-currency-bitcoin"></i>
-                {currency === 'btc' ? `${b.btc} BTC` : `${b.eth} ETH`}
+                <i className={`bi bi-currency-${currency === 'usd' ? 'dollar' : 'euro'}`}></i>
+                {currency === 'usd' ? `${b.usd} USD` : `${b.eur} EUR`}
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>{b.description}</p>
               <div className="shop-card-stock">
@@ -255,7 +255,7 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
                 className="shop-card-buy"
                 onClick={() => {
                   const currentQty = getCartQty(b.id);
-                  onBuyNow({ id: b.id, name: b.name, qty: currentQty === 0 ? 1 : currentQty, image: b.image });
+                  onBuyNow({ id: b.id, name: b.name, qty: currentQty === 0 ? 1 : currentQty, image: b.image, price: Number(b.usd) });
                 }}
                 style={{ gridColumn: 'span 2' }}
               >

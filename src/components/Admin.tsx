@@ -7,8 +7,8 @@ interface Product {
   id?: string;
   name: string;
   image: string;
-  btc_price: string;
-  eth_price: string;
+  usd_price: string;
+  eur_price: string;
   tag: string | null;
   glow_color: string;
   description: string;
@@ -24,8 +24,8 @@ interface Bundle {
   name: string;
   image: string;
   description: string;
-  btc: string;
-  eth: string;
+  usd: string;
+  eur: string;
   savings: number;
 }
 
@@ -43,8 +43,8 @@ interface Toast {
 const EMPTY_PRODUCT: Product = {
   name: '',
   image: '',
-  btc_price: '',
-  eth_price: '',
+  usd_price: '',
+  eur_price: '',
   tag: null,
   glow_color: 'rgba(255,255,255,0.3)',
   description: '',
@@ -59,8 +59,8 @@ const EMPTY_BUNDLE: Bundle = {
   name: '',
   image: '',
   description: '',
-  btc: '',
-  eth: '',
+  usd: '',
+  eur: '',
   savings: 0,
 };
 
@@ -1302,27 +1302,27 @@ export default function Admin() {
                   <div style={styles.twoCol}>
                     <div style={styles.fieldGroup}>
                       <label style={styles.label}>
-                        <i className="bi bi-currency-bitcoin" style={{ fontSize: 10 }}></i>
-                        BTC Price
+                        <i className="bi bi-currency-dollar" style={{ fontSize: 10 }}></i>
+                        USD Price
                       </label>
                       <input
                         style={styles.input}
-                        value={productForm.btc_price}
-                        onChange={(e) => updateProductField('btc_price', e.target.value)}
-                        placeholder="0.0001"
+                        value={productForm.usd_price}
+                        onChange={(e) => updateProductField('usd_price', e.target.value)}
+                        placeholder="1.00"
                         required
                       />
                     </div>
                     <div style={styles.fieldGroup}>
                       <label style={styles.label}>
-                        <i className="bi bi-currency-exchange" style={{ fontSize: 10 }}></i>
-                        ETH Price
+                        <i className="bi bi-currency-euro" style={{ fontSize: 10 }}></i>
+                        EUR Price
                       </label>
                       <input
                         style={styles.input}
-                        value={productForm.eth_price}
-                        onChange={(e) => updateProductField('eth_price', e.target.value)}
-                        placeholder="0.002"
+                        value={productForm.eur_price}
+                        onChange={(e) => updateProductField('eur_price', e.target.value)}
+                        placeholder="0.92"
                         required
                       />
                     </div>
@@ -1551,18 +1551,18 @@ export default function Admin() {
                         <div style={styles.priceBlock}>
                           <div style={styles.priceRow}>
                             <span>
-                              <i className="bi bi-currency-bitcoin" style={{ marginRight: 4 }}></i>
-                              BTC
+                              <i className="bi bi-currency-dollar" style={{ marginRight: 4 }}></i>
+                              USD
                             </span>
-                            <span style={styles.priceValue}>{p.btc_price}</span>
+                            <span style={styles.priceValue}>{p.usd_price}</span>
                           </div>
                           <div style={styles.priceDivider}></div>
                           <div style={styles.priceRow}>
                             <span>
-                              <i className="bi bi-currency-exchange" style={{ marginRight: 4 }}></i>
-                              ETH
+                              <i className="bi bi-currency-euro" style={{ marginRight: 4 }}></i>
+                              EUR
                             </span>
-                            <span style={styles.priceValue}>{p.eth_price}</span>
+                            <span style={styles.priceValue}>{p.eur_price}</span>
                           </div>
                         </div>
 
@@ -1664,27 +1664,27 @@ export default function Admin() {
                   <div style={styles.twoCol}>
                     <div style={styles.fieldGroup}>
                       <label style={styles.label}>
-                        <i className="bi bi-currency-bitcoin" style={{ fontSize: 10 }}></i>
-                        BTC Price
+                        <i className="bi bi-currency-dollar" style={{ fontSize: 10 }}></i>
+                        USD Price
                       </label>
                       <input
                         style={styles.input}
-                        value={bundleForm.btc}
-                        onChange={(e) => updateBundleField('btc', e.target.value)}
-                        placeholder="0.0001"
+                        value={bundleForm.usd}
+                        onChange={(e) => updateBundleField('usd', e.target.value)}
+                        placeholder="1.00"
                         required
                       />
                     </div>
                     <div style={styles.fieldGroup}>
                       <label style={styles.label}>
-                        <i className="bi bi-currency-exchange" style={{ fontSize: 10 }}></i>
-                        ETH Price
+                        <i className="bi bi-currency-euro" style={{ fontSize: 10 }}></i>
+                        EUR Price
                       </label>
                       <input
                         style={styles.input}
-                        value={bundleForm.eth}
-                        onChange={(e) => updateBundleField('eth', e.target.value)}
-                        placeholder="0.002"
+                        value={bundleForm.eur}
+                        onChange={(e) => updateBundleField('eur', e.target.value)}
+                        placeholder="0.92"
                         required
                       />
                     </div>
@@ -1824,18 +1824,18 @@ export default function Admin() {
                         <div style={styles.priceBlock}>
                           <div style={styles.priceRow}>
                             <span>
-                              <i className="bi bi-currency-bitcoin" style={{ marginRight: 4 }}></i>
-                              BTC
+                              <i className="bi bi-currency-dollar" style={{ marginRight: 4 }}></i>
+                              USD
                             </span>
-                            <span style={styles.priceValue}>{b.btc}</span>
+                            <span style={styles.priceValue}>{b.usd}</span>
                           </div>
                           <div style={styles.priceDivider}></div>
                           <div style={styles.priceRow}>
                             <span>
-                              <i className="bi bi-currency-exchange" style={{ marginRight: 4 }}></i>
-                              ETH
+                              <i className="bi bi-currency-euro" style={{ marginRight: 4 }}></i>
+                              EUR
                             </span>
-                            <span style={styles.priceValue}>{b.eth}</span>
+                            <span style={styles.priceValue}>{b.eur}</span>
                           </div>
                         </div>
 
