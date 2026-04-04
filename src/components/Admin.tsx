@@ -17,6 +17,7 @@ interface Product {
   accent?: string;
   bg?: string;
   in_stock: boolean;
+  is_active?: boolean;
 }
 
 interface Bundle {
@@ -27,6 +28,7 @@ interface Bundle {
   usd: string;
   eur: string;
   savings: number;
+  is_active?: boolean;
 }
 
 type Tab = 'products' | 'bundles' | 'users';
@@ -1138,6 +1140,26 @@ export default function Admin() {
     }
   }, [addToast, fetchData]);
 
+  const toggleProductStatus = useCallback(async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('products').update({ is_active: !currentStatus }).eq('id', id);
+    if (error) {
+      addToast(error.message, 'error');
+    } else {
+      addToast(`Product ${!currentStatus ? 'enabled' : 'disabled'} successfully`, 'success');
+      fetchData();
+    }
+  }, [addToast, fetchData]);
+
+  const toggleBundleStatus = useCallback(async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('bundles').update({ is_active: !currentStatus }).eq('id', id);
+    if (error) {
+      addToast(error.message, 'error');
+    } else {
+      addToast(`Bundle ${!currentStatus ? 'enabled' : 'disabled'} successfully`, 'success');
+      fetchData();
+    }
+  }, [addToast, fetchData]);
+
   /* ── Filtered data ── */
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -1546,6 +1568,14 @@ export default function Admin() {
                           <div style={styles.cardInfo}>
                             <div style={styles.cardName}>{p.name}</div>
                             <div style={styles.badgeRow}>
+                              <span
+                                style={styles.badge(
+                                  p.is_active !== false ? '#2ecc71' : '#e74c3c',
+                                  p.is_active !== false ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)'
+                                )}
+                              >
+                                {p.is_active !== false ? 'Active' : 'Disabled'}
+                              </span>
                               {p.tag && (
                                 <span
                                   style={styles.badge(
@@ -1608,6 +1638,18 @@ export default function Admin() {
                         </div>
 
                         <div style={styles.cardActions}>
+                          <button
+                            style={{
+                              ...styles.editBtn(false),
+                              background: p.is_active !== false ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
+                              color: p.is_active !== false ? '#e74c3c' : '#2ecc71',
+                              borderColor: p.is_active !== false ? 'rgba(231,76,60,0.2)' : 'rgba(46,204,113,0.2)',
+                            }}
+                            onClick={() => toggleProductStatus(p.id!, p.is_active !== false)}
+                            title={p.is_active !== false ? 'Disable Product' : 'Enable Product'}
+                          >
+                            <i className={`bi ${p.is_active !== false ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
+                          </button>
                           <button
                             style={styles.editBtn(isEditing)}
                             onClick={() => startEditProduct(p)}
@@ -1835,6 +1877,14 @@ export default function Admin() {
                             <div style={styles.badgeRow}>
                               <span
                                 style={styles.badge(
+                                  b.is_active !== false ? '#2ecc71' : '#e74c3c',
+                                  b.is_active !== false ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)'
+                                )}
+                              >
+                                {b.is_active !== false ? 'Active' : 'Disabled'}
+                              </span>
+                              <span
+                                style={styles.badge(
                                   '#2ecc71',
                                   'rgba(46,204,113,0.1)'
                                 )}
@@ -1881,6 +1931,18 @@ export default function Admin() {
                         </div>
 
                         <div style={styles.cardActions}>
+                          <button
+                            style={{
+                              ...styles.editBtn(false),
+                              background: b.is_active !== false ? 'rgba(231,76,60,0.1)' : 'rgba(46,204,113,0.1)',
+                              color: b.is_active !== false ? '#e74c3c' : '#2ecc71',
+                              borderColor: b.is_active !== false ? 'rgba(231,76,60,0.2)' : 'rgba(46,204,113,0.2)',
+                            }}
+                            onClick={() => toggleBundleStatus(b.id!, b.is_active !== false)}
+                            title={b.is_active !== false ? 'Disable Bundle' : 'Enable Bundle'}
+                          >
+                            <i className={`bi ${b.is_active !== false ? 'bi-eye-slash-fill' : 'bi-eye-fill'}`}></i>
+                          </button>
                           <button
                             style={styles.editBtn(isEditing)}
                             onClick={() => startEditBundle(b)}

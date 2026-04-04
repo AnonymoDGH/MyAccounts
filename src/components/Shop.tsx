@@ -18,6 +18,7 @@ interface Product {
   tag: string | null;
   glow_color: string;
   in_stock?: boolean;
+  is_active?: boolean;
 }
 
 const TAG_CONFIG: Record<string, { bg: string; border: string; color: string; icon: string }> = {
@@ -311,20 +312,20 @@ export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: S
                   {currency === 'usd' ? `${p.usd_price} USD` : `${p.eur_price} EUR`}
                 </div>
                 <div className="shop-card-stock">
-                  <i className="bi bi-circle-fill" style={{ color: p.in_stock ? 'var(--green)' : '#e74c3c' }}></i>
-                  {p.in_stock ? 'In Stock' : 'Out of Stock'}
+                  <i className="bi bi-circle-fill" style={{ color: p.is_active === false ? '#e74c3c' : (p.in_stock ? 'var(--green)' : '#e74c3c') }}></i>
+                  {p.is_active === false ? 'Unavailable' : (p.in_stock ? 'In Stock' : 'Out of Stock')}
                 </div>
 
                 <div className="shop-card-qty">
                   <button
                     className="qty-btn"
                     onClick={() => decQty(p)}
-                    disabled={getCartQty(p.id) <= 0 || !p.in_stock}
+                    disabled={getCartQty(p.id) <= 0 || !p.in_stock || p.is_active === false}
                   >
                     <i className="bi bi-dash"></i>
                   </button>
                   <span className="qty-num">{getCartQty(p.id)}</span>
-                  <button className="qty-btn" onClick={() => incQty(p)} disabled={!p.in_stock}>
+                  <button className="qty-btn" onClick={() => incQty(p)} disabled={!p.in_stock || p.is_active === false}>
                     <i className="bi bi-plus"></i>
                   </button>
                 </div>
@@ -335,11 +336,11 @@ export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: S
                     const currentQty = getCartQty(p.id);
                     onBuyNow({ id: p.id, name: p.name, qty: currentQty === 0 ? 1 : currentQty, image: p.image, price: Number(p.usd_price) });
                   }}
-                  disabled={!p.in_stock}
-                  style={{ opacity: p.in_stock ? 1 : 0.5, cursor: p.in_stock ? 'pointer' : 'not-allowed', gridColumn: 'span 2' }}
+                  disabled={!p.in_stock || p.is_active === false}
+                  style={{ opacity: (p.in_stock && p.is_active !== false) ? 1 : 0.5, cursor: (p.in_stock && p.is_active !== false) ? 'pointer' : 'not-allowed', gridColumn: 'span 2' }}
                 >
                   <i className="bi bi-lightning-charge-fill"></i>
-                  Buy Now
+                  {p.is_active === false ? 'Unavailable' : 'Buy Now'}
                 </button>
               </div>
             );

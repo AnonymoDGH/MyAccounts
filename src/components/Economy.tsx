@@ -17,6 +17,7 @@ interface Bundle {
   usd: string;
   eur: string;
   savings: number;
+  is_active?: boolean;
 }
 
 const DEFAULT_BUNDLES: Bundle[] = [
@@ -233,20 +234,20 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: 12, textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>{b.description}</p>
               <div className="shop-card-stock">
-                <i className="bi bi-circle-fill"></i>
-                In Stock
+                <i className="bi bi-circle-fill" style={{ color: b.is_active === false ? '#e74c3c' : 'var(--green)' }}></i>
+                {b.is_active === false ? 'Unavailable' : 'In Stock'}
               </div>
 
               <div className="shop-card-qty">
                 <button
                   className="qty-btn"
                   onClick={() => decreaseQty(b)}
-                  disabled={getCartQty(b.id) <= 0}
+                  disabled={getCartQty(b.id) <= 0 || b.is_active === false}
                 >
                   <i className="bi bi-dash"></i>
                 </button>
                 <span className="qty-num">{getCartQty(b.id)}</span>
-                <button className="qty-btn" onClick={() => increaseQty(b)}>
+                <button className="qty-btn" onClick={() => increaseQty(b)} disabled={b.is_active === false}>
                   <i className="bi bi-plus"></i>
                 </button>
               </div>
@@ -257,10 +258,11 @@ export default function Economy({ cart, onUpdateCartQty, onAddToCart, onBuyNow }
                   const currentQty = getCartQty(b.id);
                   onBuyNow({ id: b.id, name: b.name, qty: currentQty === 0 ? 1 : currentQty, image: b.image, price: Number(b.usd) });
                 }}
-                style={{ gridColumn: 'span 2' }}
+                disabled={b.is_active === false}
+                style={{ opacity: b.is_active !== false ? 1 : 0.5, cursor: b.is_active !== false ? 'pointer' : 'not-allowed', gridColumn: 'span 2' }}
               >
                 <i className="bi bi-lightning-charge-fill"></i>
-                Buy Now
+                {b.is_active === false ? 'Unavailable' : 'Buy Now'}
               </button>
             </div>
           ))}
