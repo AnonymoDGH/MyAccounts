@@ -153,13 +153,13 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOp
           {/* Login / User */}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {userRole === 'admin' && (
+              {(userRole === 'admin' || userRole === 'supplier') && (
                 <button 
                   className="nav-link" 
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent2)' }}
                   onClick={() => setPage('admin')}
                 >
-                  Admin
+                  {userRole === 'admin' ? 'Admin' : 'Dashboard'}
                 </button>
               )}
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
@@ -223,14 +223,14 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOp
                 {item.label}
               </button>
             ))}
-            {userRole === 'admin' && (
+            {(userRole === 'admin' || userRole === 'supplier') && (
               <button
                 className={`mobile-menu-link${page === 'admin' ? ' active' : ''}`}
                 onClick={() => { setPage('admin'); setMobileOpen(false); }}
                 style={{ color: 'var(--accent2)' }}
               >
-                <i className="bi bi-shield-lock-fill"></i>
-                Admin
+                <i className={`bi ${userRole === 'admin' ? 'bi-shield-lock-fill' : 'bi-shop'}`}></i>
+                {userRole === 'admin' ? 'Admin' : 'Dashboard'}
               </button>
             )}
             <button

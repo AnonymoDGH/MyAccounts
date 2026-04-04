@@ -948,7 +948,7 @@ function Loader() {
 
 /* ─────────────────────────── Main Component ─────────────────────────── */
 
-export default function Admin() {
+export default function Admin({ userRole, currentUserId }: { userRole: string; currentUserId: string }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -965,7 +965,7 @@ export default function Admin() {
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState<Product>({ ...EMPTY_PRODUCT });
-
+  
   const [editingBundle, setEditingBundle] = useState<Bundle | null>(null);
   const [bundleForm, setBundleForm] = useState<Bundle>({ ...EMPTY_BUNDLE });
 
@@ -984,10 +984,24 @@ export default function Admin() {
   /* ── Fetch data ── */
   const fetchData = useCallback(async () => {
     setLoading(true);
+    
+    let pQuery = supabase.from('products').select('*').order('created_at', { ascending: false });
+    let bQuery = supabase.from('bundles').select('*').order('created_at', { ascending: false });
+    let uQuery = supabase.from('users').select('*').order('created_at', { ascending: false });
+    if (userRole === 'supplier') {
+      uQuery = uQuery.eq('id', currentUserId);
+    }
+
+    // If supplier, only fetch their products/bundles
+    if (userRole === 'supplier') {
+      pQuery = pQuery.eq('supplier_id', currentUserId);
+      bQuery = bQuery.eq('supplier_id', currentUserId);
+    }
+
     const [pRes, bRes, uRes] = await Promise.all([
-      supabase.from('products').select('*').order('created_at', { ascending: false }),
-      supabase.from('bundles').select('*').order('created_at', { ascending: false }),
-      supabase.from('users').select('*').order('created_at', { ascending: false }),
+      pQuery,
+      bQuery,
+      uQuery,
     ]);
 
     if (pRes.error) {
@@ -1012,7 +1026,7 @@ export default function Admin() {
     }
 
     setLoading(false);
-  }, [addToast]);
+  }, [addToast, userRole, currentUserId]);
 
   useEffect(() => {
     fetchData();
@@ -1036,10 +1050,15 @@ export default function Admin() {
       e.preventDefault();
       setSaving(true);
 
+      const payload = { 
+        ...productForm,
+        supplier_id: userRole === 'supplier' ? currentUserId : productForm.supplier_id || null
+      };
+
       if (editingProduct?.id) {
         const { error } = await supabase
           .from('products')
-          .update(productForm)
+          .update(payload)
           .eq('id', editingProduct.id);
         if (error) {
           addToast(error.message, 'error');
@@ -1049,7 +1068,7 @@ export default function Admin() {
           fetchData();
         }
       } else {
-        const { error } = await supabase.from('products').insert([productForm]);
+        const { error } = await supabase.from('products').insert([payload]);
         if (error) {
           addToast(error.message, 'error');
         } else {
@@ -1061,14 +1080,17 @@ export default function Admin() {
 
       setSaving(false);
     },
-    [editingProduct, productForm, addToast, resetProductForm, fetchData]
+    [editingProduct, productForm, addToast, resetProductForm, fetchData, userRole, currentUserId]
   );
 
   const startEditProduct = useCallback((p: Product) => {
     setEditingProduct(p);
-    setProductForm(p);
+    setProductForm({
+      ...p,
+      supplier_id: p.supplier_id || (userRole === 'supplier' ? currentUserId : '')
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [userRole, currentUserId]);
 
   /* ── Bundle form helpers ── */
   const updateBundleField = useCallback(
@@ -1088,10 +1110,15 @@ export default function Admin() {
       e.preventDefault();
       setSaving(true);
 
+      const payload = { 
+        ...bundleForm,
+        supplier_id: userRole === 'supplier' ? currentUserId : bundleForm.supplier_id || null
+      };
+
       if (editingBundle?.id) {
         const { error } = await supabase
           .from('bundles')
-          .update(bundleForm)
+          .update(payload)
           .eq('id', editingBundle.id);
         if (error) {
           addToast(error.message, 'error');
@@ -1101,7 +1128,7 @@ export default function Admin() {
           fetchData();
         }
       } else {
-        const { error } = await supabase.from('bundles').insert([bundleForm]);
+        const { error } = await supabase.from('bundles').insert([payload]);
         if (error) {
           addToast(error.message, 'error');
         } else {
@@ -1113,14 +1140,17 @@ export default function Admin() {
 
       setSaving(false);
     },
-    [editingBundle, bundleForm, addToast, resetBundleForm, fetchData]
+    [editingBundle, bundleForm, addToast, resetBundleForm, fetchData, userRole, currentUserId]
   );
 
   const startEditBundle = useCallback((b: Bundle) => {
     setEditingBundle(b);
-    setBundleForm(b);
+    setBundleForm({
+      ...b,
+      supplier_id: b.supplier_id || (userRole === 'supplier' ? currentUserId : '')
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+  }, [userRole, currentUserId]);
 
   /* ── Delete ── */
   const confirmDelete = useCallback(async () => {
@@ -1259,21 +1289,23 @@ export default function Admin() {
                 {bundles.length}
               </span>
             </button>
-            <button style={styles.tab(tab === 'users')} onClick={() => { setTab('users'); setSearchQuery(''); }}>
-              <i className="bi bi-people"></i>
-              Users
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: tab === 'users' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
-                  padding: '2px 8px',
-                  borderRadius: 6,
-                }}
-              >
-                {users.length}
-              </span>
-            </button>
+            {userRole === 'admin' && (
+              <button style={styles.tab(tab === 'users')} onClick={() => { setTab('users'); setSearchQuery(''); }}>
+                <i className="bi bi-people"></i>
+                Users
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    background: tab === 'users' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                  }}
+                >
+                  {users.length}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1499,6 +1531,7 @@ export default function Admin() {
                       style={styles.input}
                       value={productForm.supplier_id || ''}
                       onChange={(e) => updateProductField('supplier_id', e.target.value)}
+                      disabled={userRole === 'supplier'}
                     >
                       <option value="">Select Supplier</option>
                       {suppliers.map(s => (
@@ -1838,6 +1871,7 @@ export default function Admin() {
                       style={styles.input}
                       value={bundleForm.supplier_id || ''}
                       onChange={(e) => updateBundleField('supplier_id', e.target.value)}
+                      disabled={userRole === 'supplier'}
                     >
                       <option value="">Select Supplier</option>
                       {suppliers.map(s => (
@@ -2018,7 +2052,7 @@ export default function Admin() {
           </div>
         )}
 
-        {tab === 'users' && (
+        {tab === 'users' && userRole === 'admin' && (
           <div style={styles.gridLayout}>
             <div style={{ gridColumn: '1 / -1' }}>
               <div style={styles.formCard}>

@@ -421,8 +421,8 @@ export default function App() {
               <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
               <p>Verifying access...</p>
             </div>
-          ) : userRole === 'admin' ? (
-            <Admin />
+          ) : (userRole === 'admin' || userRole === 'supplier') ? (
+            <Admin userRole={userRole} currentUserId={user?.id} />
           ) : (
             <div style={{ padding: '100px 20px', textAlign: 'center', color: '#fff' }}>
               <h2>Access Denied</h2>
