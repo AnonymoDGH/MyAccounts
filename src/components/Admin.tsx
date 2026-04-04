@@ -29,13 +29,20 @@ interface Bundle {
   savings: number;
 }
 
-type Tab = 'products' | 'bundles';
+type Tab = 'products' | 'bundles' | 'users';
 type ToastType = 'success' | 'error' | 'info';
 
 interface Toast {
   id: number;
   message: string;
   type: ToastType;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
 }
 
 /* ─────────────────────────── Defaults ─────────────────────────── */
@@ -937,6 +944,7 @@ function Loader() {
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>('products');
@@ -969,9 +977,10 @@ export default function Admin() {
   /* ── Fetch data ── */
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [pRes, bRes] = await Promise.all([
+    const [pRes, bRes, uRes] = await Promise.all([
       supabase.from('products').select('*').order('created_at', { ascending: false }),
       supabase.from('bundles').select('*').order('created_at', { ascending: false }),
+      supabase.from('users').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (pRes.error) {
@@ -986,6 +995,13 @@ export default function Admin() {
       addToast('Failed to load bundles', 'error');
     } else {
       setBundles(bRes.data || []);
+    }
+
+    if (uRes.error) {
+      console.error('Error fetching users:', uRes.error);
+      addToast('Failed to load users', 'error');
+    } else {
+      setUsers(uRes.data || []);
     }
 
     setLoading(false);
@@ -1112,6 +1128,16 @@ export default function Admin() {
     setDeleteModal(null);
   }, [deleteModal, addToast, fetchData]);
 
+  const updateUserRole = useCallback(async (userId: string, newRole: string) => {
+    const { error } = await supabase.from('users').update({ role: newRole }).eq('id', userId);
+    if (error) {
+      addToast(error.message, 'error');
+    } else {
+      addToast(`User role updated to ${newRole}`, 'success');
+      fetchData();
+    }
+  }, [addToast, fetchData]);
+
   /* ── Filtered data ── */
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -1200,6 +1226,21 @@ export default function Admin() {
                 }}
               >
                 {bundles.length}
+              </span>
+            </button>
+            <button style={styles.tab(tab === 'users')} onClick={() => { setTab('users'); setSearchQuery(''); }}>
+              <i className="bi bi-people"></i>
+              Users
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  background: tab === 'users' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                }}
+              >
+                {users.length}
               </span>
             </button>
           </div>
@@ -1868,6 +1909,82 @@ export default function Admin() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {tab === 'users' && (
+          <div style={styles.gridLayout}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <div style={styles.formCard}>
+                <div style={styles.formHeader}>
+                  <h2 style={styles.formTitle}>
+                    <i className="bi bi-people" style={{ color: 'var(--accent2, #6c5ce7)' }}></i>
+                    User Management
+                  </h2>
+                </div>
+                
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border, #2a2a3e)' }}>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Email</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Role</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Joined</th>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px' }}>{user.email}</td>
+                          <td style={{ padding: '16px' }}>
+                            <span style={{
+                              background: user.role === 'admin' ? 'rgba(108, 92, 231, 0.2)' : 'rgba(255,255,255,0.1)',
+                              color: user.role === 'admin' ? '#a29bfe' : '#fff',
+                              padding: '4px 8px',
+                              borderRadius: 4,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              textTransform: 'uppercase'
+                            }}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px', color: 'var(--text-muted, #888)' }}>
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            <select
+                              value={user.role}
+                              onChange={(e) => updateUserRole(user.id, e.target.value)}
+                              style={{
+                                background: 'rgba(0,0,0,0.2)',
+                                border: '1px solid var(--border, #2a2a3e)',
+                                color: '#fff',
+                                padding: '6px 12px',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                outline: 'none'
+                              }}
+                            >
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                      {users.length === 0 && !loading && (
+                        <tr>
+                          <td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted, #888)' }}>
+                            No users found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}

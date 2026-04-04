@@ -71,6 +71,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [tickerVisible, setTickerVisible] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>('user');
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
 
@@ -78,14 +79,27 @@ export default function App() {
     fetchFeatured();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchUserRole(session.user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setUserRole('user');
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  async function fetchUserRole(userId: string) {
+    const { data } = await supabase.from('users').select('role').eq('id', userId).single();
+    if (data) {
+      setUserRole(data.role);
+    }
+  }
 
   async function fetchFeatured() {
     try {
@@ -206,6 +220,7 @@ export default function App() {
         onLoginOpen={() => setLoginOpen(true)}
         onLogout={handleLogout}
         user={user}
+        userRole={userRole}
         onTickerVisibleChange={setTickerVisible}
       />
 
@@ -365,7 +380,12 @@ export default function App() {
         {page === 'faq' && <FAQ />}
         {page === 'safety' && <Safety />}
         {page === 'contact' && <Contact />}
-        {page === 'admin' && <Admin />}
+        {page === 'admin' && (userRole === 'admin' ? <Admin /> : (
+          <div style={{ padding: '100px 20px', textAlign: 'center', color: '#fff' }}>
+            <h2>Access Denied</h2>
+            <p>You do not have permission to view this page.</p>
+          </div>
+        ))}
       </main>
 
       {/* Footer */}

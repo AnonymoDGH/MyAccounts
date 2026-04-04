@@ -10,6 +10,7 @@ interface HeaderProps {
   onLoginOpen: () => void;
   onLogout: () => void;
   user: any;
+  userRole?: string;
   onTickerVisibleChange?: (visible: boolean) => void;
 }
 
@@ -22,7 +23,7 @@ const NAV_ITEMS = [
   { key: 'contact', label: 'Contact', icon: 'bi-envelope-fill' },
 ];
 
-export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOpen, onLogout, user, onTickerVisibleChange }: HeaderProps) {
+export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOpen, onLogout, user, userRole, onTickerVisibleChange }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showTicker, setShowTicker] = useState(true);
@@ -152,7 +153,7 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOp
           {/* Login / User */}
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {user.email === 'js1626482@gmail.com' && (
+              {userRole === 'admin' && (
                 <button 
                   className="nav-link" 
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent2)' }}
@@ -222,6 +223,16 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onLoginOp
                 {item.label}
               </button>
             ))}
+            {userRole === 'admin' && (
+              <button
+                className={`mobile-menu-link${page === 'admin' ? ' active' : ''}`}
+                onClick={() => { setPage('admin'); setMobileOpen(false); }}
+                style={{ color: 'var(--accent2)' }}
+              >
+                <i className="bi bi-shield-lock-fill"></i>
+                Admin
+              </button>
+            )}
             <button
               className="mobile-menu-link"
               onClick={() => { onCartOpen(); setMobileOpen(false); }}
