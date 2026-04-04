@@ -71,7 +71,7 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [tickerVisible, setTickerVisible] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [userRole, setUserRole] = useState<string>('user');
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
 
@@ -79,7 +79,11 @@ export default function App() {
     fetchFeatured();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserRole(session.user.id);
+      if (session?.user) {
+        fetchUserRole(session.user.id);
+      } else {
+        setUserRole('user');
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -95,9 +99,22 @@ export default function App() {
   }, []);
 
   async function fetchUserRole(userId: string) {
-    const { data } = await supabase.from('users').select('role').eq('id', userId).single();
-    if (data) {
-      setUserRole(data.role);
+    try {
+      const { data, error } = await supabase.from('users').select('role').eq('id', userId).single();
+      if (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole('user');
+        return;
+      }
+      if (data) {
+        console.log('Fetched user role:', data.role);
+        setUserRole(data.role);
+      } else {
+        setUserRole('user');
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching role:', err);
+      setUserRole('user');
     }
   }
 
@@ -380,12 +397,21 @@ export default function App() {
         {page === 'faq' && <FAQ />}
         {page === 'safety' && <Safety />}
         {page === 'contact' && <Contact />}
-        {page === 'admin' && (userRole === 'admin' ? <Admin /> : (
-          <div style={{ padding: '100px 20px', textAlign: 'center', color: '#fff' }}>
-            <h2>Access Denied</h2>
-            <p>You do not have permission to view this page.</p>
-          </div>
-        ))}
+        {page === 'admin' && (
+          userRole === null ? (
+            <div style={{ padding: '100px 20px', textAlign: 'center', color: '#fff' }}>
+              <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
+              <p>Verifying access...</p>
+            </div>
+          ) : userRole === 'admin' ? (
+            <Admin />
+          ) : (
+            <div style={{ padding: '100px 20px', textAlign: 'center', color: '#fff' }}>
+              <h2>Access Denied</h2>
+              <p>You do not have permission to view this page.</p>
+            </div>
+          )
+        )}
       </main>
 
       {/* Footer */}
