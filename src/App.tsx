@@ -12,6 +12,7 @@ import CartDrawer from './components/CartDrawer';
 import LoginModal from './components/LoginModal';
 import Economy from './components/Economy';
 import Admin from './components/Admin';
+import SupplierProfile from './components/SupplierProfile';
 
 interface CartItem { id: string | number; name: string; qty: number; image: string; price: number; }
 
@@ -74,6 +75,7 @@ export default function App() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeatured();
@@ -123,7 +125,7 @@ export default function App() {
       setLoadingFeatured(true);
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, supplier:users!supplier_id(id, username, avatar_url)')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(4);
@@ -312,6 +314,20 @@ export default function App() {
                         <i className="bi bi-circle-fill" style={{ color: p.in_stock ? 'var(--green)' : '#e74c3c' }}></i>
                         {p.in_stock ? 'In Stock' : 'Out of Stock'}
                       </div>
+                      
+                      {p.supplier && (
+                        <div 
+                          onClick={() => setSelectedSupplierId(p.supplier.id)}
+                          style={{ 
+                            display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 16, paddingTop: 12, 
+                            borderTop: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' 
+                          }}
+                        >
+                          <img src={p.supplier.avatar_url || 'https://via.placeholder.com/24'} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Sold by <strong style={{color: '#fff'}}>{p.supplier.username || 'Unknown'}</strong></span>
+                        </div>
+                      )}
+
                       <button
                         className="shop-card-atc"
                         onClick={() => handleAddToCart({ id: p.id, name: p.name, qty: 1, image: p.image, price: Number(p.usd_price) })}
@@ -393,7 +409,7 @@ export default function App() {
           </>
         )}
 
-        {page === 'shop' && <Shop cart={cart} onUpdateCartQty={handleUpdateCartQty} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
+        {page === 'shop' && <Shop cart={cart} onUpdateCartQty={handleUpdateCartQty} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} onSupplierClick={setSelectedSupplierId} />}
         {page === 'economy' && <Economy cart={cart} onUpdateCartQty={handleUpdateCartQty} onAddToCart={handleAddToCart} onBuyNow={handleBuyNow} />}
         {page === 'faq' && <FAQ />}
         {page === 'safety' && <Safety />}
@@ -490,6 +506,12 @@ export default function App() {
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
       />
+      {selectedSupplierId && (
+        <SupplierProfile 
+          supplierId={selectedSupplierId} 
+          onClose={() => setSelectedSupplierId(null)} 
+        />
+      )}
     </div>
   );
 }

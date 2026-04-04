@@ -7,6 +7,7 @@ interface ShopProps {
   onUpdateCartQty: (item: CartItem) => void;
   onAddToCart: (item: CartItem) => void;
   onBuyNow: (item: CartItem) => void;
+  onSupplierClick?: (supplierId: string) => void;
 }
 
 interface Product {
@@ -19,6 +20,7 @@ interface Product {
   glow_color: string;
   in_stock?: boolean;
   is_active?: boolean;
+  supplier?: { id: string; username: string; avatar_url: string; } | null;
 }
 
 const TAG_CONFIG: Record<string, { bg: string; border: string; color: string; icon: string }> = {
@@ -63,7 +65,7 @@ const DEFAULT_PRODUCTS: Product[] = [
   }
 ];
 
-export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: ShopProps) {
+export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow, onSupplierClick }: ShopProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -79,7 +81,7 @@ export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: S
   async function fetchProducts() {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('products').select('*');
+      const { data, error } = await supabase.from('products').select('*, supplier:users!supplier_id(id, username, avatar_url)');
       if (error) {
         console.error('Error fetching products:', error);
         setProducts(DEFAULT_PRODUCTS);
@@ -315,6 +317,19 @@ export default function Shop({ cart, onUpdateCartQty, onAddToCart, onBuyNow }: S
                   <i className="bi bi-circle-fill" style={{ color: p.is_active === false ? '#e74c3c' : (p.in_stock ? 'var(--green)' : '#e74c3c') }}></i>
                   {p.is_active === false ? 'Unavailable' : (p.in_stock ? 'In Stock' : 'Out of Stock')}
                 </div>
+
+                {p.supplier && onSupplierClick && (
+                  <div 
+                    onClick={() => onSupplierClick(p.supplier!.id)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 16, paddingTop: 12, 
+                      borderTop: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' 
+                    }}
+                  >
+                    <img src={p.supplier.avatar_url || 'https://via.placeholder.com/24'} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Sold by <strong style={{color: '#fff'}}>{p.supplier.username || 'Unknown'}</strong></span>
+                  </div>
+                )}
 
                 <div className="shop-card-qty">
                   <button
