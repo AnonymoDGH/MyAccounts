@@ -32,7 +32,12 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.users (id, email, role)
-  VALUES (new.id, new.email, 'user');
+  VALUES (
+    new.id, 
+    COALESCE(new.email, new.raw_user_meta_data->>'email', 'discord_user_' || substr(new.id::text, 1, 8)), 
+    'user'
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
