@@ -1928,6 +1928,7 @@ export default function Admin() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border, #2a2a3e)' }}>
+                        <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>User</th>
                         <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Email</th>
                         <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Role</th>
                         <th style={{ padding: '12px 16px', color: 'var(--text-muted, #888)', fontWeight: 600 }}>Joined</th>
@@ -1937,6 +1938,27 @@ export default function Admin() {
                     <tbody>
                       {users.map((user) => (
                         <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              {user.avatar_url ? (
+                                <img 
+                                  src={user.avatar_url} 
+                                  alt="Avatar" 
+                                  style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)' }}
+                                />
+                              ) : (
+                                <div style={{ 
+                                  width: 32, height: 32, borderRadius: '50%', 
+                                  background: 'var(--accent2)', display: 'flex', 
+                                  alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 14, fontWeight: 700, color: 'white'
+                                }}>
+                                  {(user.username?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                                </div>
+                              )}
+                              <span style={{ fontWeight: 600 }}>{user.username || 'Unknown'}</span>
+                            </div>
+                          </td>
                           <td style={{ padding: '16px' }}>{user.email}</td>
                           <td style={{ padding: '16px' }}>
                             <span style={{
