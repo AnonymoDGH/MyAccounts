@@ -127,7 +127,7 @@ export default function App() {
         .from('products')
         .select('*, supplier:users!supplier_id(id, username, avatar_url)')
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .order('hero_order', { ascending: true })
         .limit(4);
       
       if (error) {

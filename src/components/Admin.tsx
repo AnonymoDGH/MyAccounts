@@ -19,6 +19,7 @@ interface Product {
   in_stock: boolean;
   is_active?: boolean;
   supplier_id?: string;
+  hero_order?: number;
 }
 
 interface Bundle {
@@ -66,6 +67,7 @@ const EMPTY_PRODUCT: Product = {
   bg: 'slide-dark',
   in_stock: true,
   supplier_id: '',
+  hero_order: 0,
 };
 
 const EMPTY_BUNDLE: Bundle = {
@@ -1511,6 +1513,20 @@ export default function Admin({ userRole, currentUserId }: { userRole: string; c
 
                   <div style={styles.fieldGroup}>
                     <label style={styles.label}>
+                      <i className="bi bi-sort-numeric-down" style={{ fontSize: 10 }}></i>
+                      Hero Order (0 = first)
+                    </label>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={productForm.hero_order || 0}
+                      onChange={(e) => updateProductField('hero_order', Number(e.target.value))}
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>
                       <i className="bi bi-text-paragraph" style={{ fontSize: 10 }}></i>
                       Description
                     </label>
@@ -1652,7 +1668,7 @@ export default function Admin({ userRole, currentUserId }: { userRole: string; c
                                     'rgba(241,196,15,0.1)'
                                   )}
                                 >
-                                  ★ HERO
+                                  ★ HERO {p.hero_order !== undefined ? `(#${p.hero_order})` : ''}
                                 </span>
                               )}
                               {p.in_stock ? (

@@ -87,7 +87,8 @@ export default function Hero({ onAddToCart, onBuyNow, onShop, onSupplierClick }:
       const { data, error } = await supabase
         .from('products')
         .select('*, supplier:users!supplier_id(id, username, avatar_url)')
-        .eq('is_featured', true);
+        .eq('is_featured', true)
+        .order('hero_order', { ascending: true });
       if (error) {
         console.error('Error fetching featured products:', error);
         setSlides(DEFAULT_SLIDES);
