@@ -18,6 +18,7 @@ interface Product {
   bg?: string;
   in_stock: boolean;
   is_active?: boolean;
+  supplier_id?: string;
 }
 
 interface Bundle {
@@ -29,6 +30,7 @@ interface Bundle {
   eur: string;
   savings: number;
   is_active?: boolean;
+  supplier_id?: string;
 }
 
 type Tab = 'products' | 'bundles' | 'users';
@@ -43,6 +45,7 @@ interface Toast {
 interface User {
   id: string;
   email: string;
+  username?: string;
   role: string;
   created_at: string;
 }
@@ -62,6 +65,7 @@ const EMPTY_PRODUCT: Product = {
   accent: '#f5f5f5',
   bg: 'slide-dark',
   in_stock: true,
+  supplier_id: '',
 };
 
 const EMPTY_BUNDLE: Bundle = {
@@ -71,6 +75,7 @@ const EMPTY_BUNDLE: Bundle = {
   usd: '',
   eur: '',
   savings: 0,
+  supplier_id: '',
 };
 
 /* ─────────────────────────── Styles ─────────────────────────── */
@@ -1160,6 +1165,10 @@ export default function Admin() {
     }
   }, [addToast, fetchData]);
 
+  const suppliers = useMemo(() => {
+    return users.filter(u => u.role === 'supplier' || u.role === 'admin');
+  }, [users]);
+
   /* ── Filtered data ── */
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return products;
@@ -1479,6 +1488,23 @@ export default function Admin() {
                       onChange={(e) => updateProductField('description', e.target.value)}
                       placeholder="Product details..."
                     />
+                  </div>
+
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>
+                      <i className="bi bi-person-badge" style={{ fontSize: 10 }}></i>
+                      Supplier
+                    </label>
+                    <select
+                      style={styles.input}
+                      value={productForm.supplier_id || ''}
+                      onChange={(e) => updateProductField('supplier_id', e.target.value)}
+                    >
+                      <option value="">Select Supplier</option>
+                      {suppliers.map(s => (
+                        <option key={s.id} value={s.id}>{s.username || s.email}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div style={styles.checkboxRow}>
@@ -1803,6 +1829,23 @@ export default function Admin() {
                     />
                   </div>
 
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>
+                      <i className="bi bi-person-badge" style={{ fontSize: 10 }}></i>
+                      Supplier
+                    </label>
+                    <select
+                      style={styles.input}
+                      value={bundleForm.supplier_id || ''}
+                      onChange={(e) => updateBundleField('supplier_id', e.target.value)}
+                    >
+                      <option value="">Select Supplier</option>
+                      {suppliers.map(s => (
+                        <option key={s.id} value={s.id}>{s.username || s.email}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div style={styles.buttonRow}>
                     <button
                       type="submit"
@@ -2053,6 +2096,7 @@ export default function Admin() {
                               }}
                             >
                               <option value="user">User</option>
+                              <option value="supplier">Supplier</option>
                               <option value="admin">Admin</option>
                             </select>
                           </td>

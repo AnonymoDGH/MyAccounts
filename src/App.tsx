@@ -339,7 +339,7 @@ export default function App() {
                       </button>
                       <button
                         className="shop-card-buy"
-                        onClick={() => handleBuyNow({ id: p.id, name: p.name, qty: 1, image: p.image })}
+                        onClick={() => handleBuyNow({ id: p.id, name: p.name, qty: 1, image: p.image, price: Number(p.usd_price) })}
                         disabled={!p.in_stock}
                         style={{ opacity: p.in_stock ? 1 : 0.5 }}
                       >

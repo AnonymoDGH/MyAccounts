@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
-interface CartItem { id: string | number; name: string; qty: number; image: string; }
+interface CartItem { id: string | number; name: string; qty: number; image: string; price: number; }
 interface Props {
   cart: CartItem[];
   onUpdateCartQty: (item: CartItem) => void;

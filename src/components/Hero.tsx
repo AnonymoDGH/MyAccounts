@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const LOGO_URL = 'https://raw.githubusercontent.com/skelettn/MyDrugs2.0/main/assets/logo.png';
 
-interface CartItem { id: string | number; name: string; qty: number; image: string; }
+interface CartItem { id: string | number; name: string; qty: number; image: string; price: number; }
 
 interface HeroProps {
   onAddToCart: (item: CartItem) => void;
