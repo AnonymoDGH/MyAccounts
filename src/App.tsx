@@ -251,6 +251,7 @@ export default function App() {
               onAddToCart={handleAddToCart} 
               onBuyNow={handleHeroBuyNow}
               onShop={() => navigateTo('shop')} 
+              onSupplierClick={setSelectedSupplierId}
             />
 
             {/* Mini shop preview */}

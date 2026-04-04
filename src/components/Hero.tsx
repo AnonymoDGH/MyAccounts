@@ -9,6 +9,7 @@ interface HeroProps {
   onAddToCart: (item: CartItem) => void;
   onBuyNow: (item: CartItem) => void;
   onShop: () => void;
+  onSupplierClick?: (supplierId: string) => void;
 }
 
 interface Slide {
@@ -23,6 +24,7 @@ interface Slide {
   bg: string;
   glow_color: string;
   accent: string;
+  supplier?: { id: string; username: string; avatar_url: string; } | null;
 }
 
 const DEFAULT_SLIDES: Slide[] = [
@@ -67,7 +69,7 @@ function Stars({ count, total = 5 }: { count: number; total?: number }) {
   );
 }
 
-export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
+export default function Hero({ onAddToCart, onBuyNow, onShop, onSupplierClick }: HeroProps) {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [current, setCurrent] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -82,7 +84,10 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
 
   async function fetchFeatured() {
     try {
-      const { data, error } = await supabase.from('products').select('*').eq('is_featured', true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, supplier:users!supplier_id(id, username, avatar_url)')
+        .eq('is_featured', true);
       if (error) {
         console.error('Error fetching featured products:', error);
         setSlides(DEFAULT_SLIDES);
@@ -101,6 +106,7 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
                       p.name.toLowerCase().includes('crunchy') ? 'slide-orange' : 'slide-purple'),
           glow_color: p.glow_color || 'rgba(255,255,255,0.2)',
           accent: p.accent || '#f5f5f5',
+          supplier: p.supplier,
         })));
       } else {
         setSlides(DEFAULT_SLIDES);
@@ -237,6 +243,31 @@ export default function Hero({ onAddToCart, onBuyNow, onShop }: HeroProps) {
               Buy Now
             </button>
           </div>
+
+          {slide.supplier && onSupplierClick && (
+            <div 
+              onClick={() => onSupplierClick(slide.supplier!.id)}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: 10, marginTop: 24, 
+                padding: '12px 16px', background: 'rgba(255,255,255,0.03)', 
+                borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)',
+                cursor: 'pointer', animation: 'fadeSlideUp 0.5s ease 0.4s both',
+                width: 'fit-content'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+              onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+            >
+              <img 
+                src={slide.supplier.avatar_url || 'https://via.placeholder.com/32'} 
+                style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent2, #00ff88)' }} 
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Verified Supplier</span>
+                <span style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{slide.supplier.username || 'Unknown'}</span>
+              </div>
+              <i className="bi bi-patch-check-fill" style={{ color: 'var(--accent2, #00ff88)', fontSize: 14, marginLeft: 'auto' }}></i>
+            </div>
+          )}
         </div>
 
         <div className="slide-dots">
